@@ -15,6 +15,7 @@ library(tidyverse)
 ```
 
 # Import Data
+
 ```{r}
 # Fruit data
 fruit_files <- list.files(pattern = ".xlsx", path = "../data/fruit-2020", full.names = TRUE)
@@ -23,12 +24,14 @@ fruit_2020 <- do.call(rbind, lapply
         (fruit_files, import, as.is=T, header = FALSE))
 
 # Vegetable Data
-vegetable_files <- list.files(pattern = ".xlsx", path = "../data/vegetables-2020", full.names = TRUE)
+veg_files <- list.files(pattern = ".xlsx", path = "../data/vegetables-2020", full.names = TRUE)
 
-vegetable_2020 <- do.call(rbind, lapply
-        (vegetable_files, import, as.is=T, header = FALSE))
+veg_2020 <- do.call(rbind, lapply
+        (veg_files, import, as.is=T, header = FALSE))
 ```
-# Removing rows without data 
+
+# Removing rows without data
+
 ```{r}
 # Fruit cleaning
 fruit_2020 <- fruit_2020 %>% # rename cols to be more descriptive
@@ -42,16 +45,65 @@ fruit_2020_clean <- fruit_2020 %>% # remove rows without data (these were just t
   filter(!substr(fruit, 1, 6) == "Source")
 
 # Veggie cleaning
-vegetable_2020 <- vegetable_2020 %>% # rename cols to be more descriptive
-  rename(fruit = ...1, retail_price = ...2, retail_price_unit = ...3, yeild = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
+veg_2020 <- veg_2020 %>% # rename cols to be more descriptive
+  rename(veg = ...1, retail_price = ...2, retail_price_unit = ...3, yeild = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
 
-vegetable_2020_clean <- vegetable_2020 %>% # remove rows without data (these were just the citation of where the data came from)
-  filter(!substr(fruit, 1, 1) == "1") %>% 
-  filter(!substr(fruit, 1, 1) == "2") %>% 
-  filter(!substr(fruit, 1, 1) == "3") %>% 
-  filter(!substr(fruit, 1, 1) == "4") %>% 
-  filter(!substr(fruit, 1, 6) == "Source")
+veg_2020_clean <- veg_2020 %>% # remove rows without data (these were just the citation of where the data came from)
+  filter(!substr(veg, 1, 1) == "1") %>% 
+  filter(!substr(veg, 1, 1) == "2") %>% 
+  filter(!substr(veg, 1, 1) == "3") %>% 
+  filter(!substr(veg, 1, 1) == "4") %>% 
+  filter(!substr(veg, 1, 6) == "Source")
 ```
+
+# Tidying the data
+
+```{r}
+# Fruit
+fruit_names <- c("Apples", "Apricots", "Bananas", "Mixed berries", "Blackberries", "Blueberries", "Cantaloupe", "Cherries", "Clementines", "Cranberries", "Dates", "Figs", "Fruit cocktail", "Grapefruit", "Grapes", "Honeydew melon", "Kiwi", "Mangoes", "Nectarines", "Oranges", "Papaya", "Peaches", "Pears", "Pineapple", "Plums", "Pomegranate", "Raspberries", "Strawberries", "Watermelon") # creating a vector with the fruit names
+
+fruit_2020_clean <- fruit_2020_clean |> 
+  # fix the fruit column to isolate the fruit name
+  mutate(fruit = str_extract(fruit, "[^—]+")) |> 
+  # create a flag for fruit names
+  mutate(is_fruit = fruit %in% fruit_names) |> 
+  # fill the fruit name down
+  mutate(fruit_name = if_else(is_fruit, fruit, NA_character_)) |> 
+  fill(fruit_name, .direction = "down") |> 
+  # remove rows where fruit column is the fruit name or "Form"
+  filter(!is_fruit, fruit != "Form") |> 
+  # rename columns
+  rename(form = fruit) |> 
+  # move the fruit column to the beginning
+  relocate(fruit_name, .before = "form") |> 
+  # remove the is_fruit column, we don't need it anymore
+  select(-is_fruit) |> 
+  # remove any rows with NA in the retail_price column
+  filter(!is.na(retail_price))
+
+# Vegetable
+veg_names <- c("Acorn squash", "Artichoke", "Asparagus", "Avocados", "Beets", "Black beans", "Blackeye peas", "Broccoli", "Brussels sprouts", "Butternut squash", "Cabbage", "Carrots", "Cauliflower", "Celery", "Collard greens", "Sweet corn", "Cucumbers", "Great northern beans", "Green beans", "Green peas", "Green peppers", "Kale", "Kidney beans", "Lentils", "Iceberg lettuce", "Romaine lettuce", "Lima beans", "Mixed vegetables", "Mushrooms", "Mustard greens", "Navy beans", "Okra", "Olives", "Onions", "Pinto beans", "Potatoes", "Pumpkin", "Radish", "Red peppers", "Spinach", "Sweet potatoes", "Tomatoes", "Turnip greens", "Zucchini") # creating a vector with the veggie names
+
+veg_2020_clean <- veg_2020_clean |> 
+  # fix the veg column to isolate the veg name
+  mutate(veg = str_extract(veg, "[^—]+")) |> 
+  # create a flag for veg names
+  mutate(is_veg = veg %in% veg_names) |> 
+  # fill the veg name down
+  mutate(veg_name = if_else(is_veg, veg, NA_character_)) |> 
+  fill(veg_name, .direction = "down") |> 
+  # remove rows where veg column is the veg name or "Form"
+  filter(!is_veg, veg != "Form") |> 
+  # rename columns
+  rename(form = veg) |> 
+  # move the veg column to the beginning
+  relocate(veg_name, .before = "form") |> 
+  # remove the is_veg column, we don't need it anymore
+  select(-is_veg) |> 
+  # remove any rows with NA in the reatil_price column
+  filter(!is.na(retail_price))
+```
+
 
 # How does the price of fruits and vegetables vary based on form? (Kyla)
 
