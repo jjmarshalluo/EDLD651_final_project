@@ -12,6 +12,7 @@ library(here)
 library(janitor)
 library(rio)
 library(tidyverse)
+library(tm)
 ```
 
 # Import Data
@@ -35,7 +36,7 @@ veg_2020 <- do.call(rbind, lapply
 ```{r}
 # Fruit cleaning
 fruit_2020 <- fruit_2020 %>% # rename cols to be more descriptive
-  rename(fruit = ...1, retail_price = ...2, retail_price_unit = ...3, yeild = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
+  rename(fruit = ...1, retail_price = ...2, retail_price_unit = ...3, yield = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
 
 fruit_2020_clean <- fruit_2020 %>% # remove rows without data (these were just the citation of where the data came from)
   filter(!substr(fruit, 1, 1) == "1") %>% 
@@ -46,7 +47,7 @@ fruit_2020_clean <- fruit_2020 %>% # remove rows without data (these were just t
 
 # Veggie cleaning
 veg_2020 <- veg_2020 %>% # rename cols to be more descriptive
-  rename(veg = ...1, retail_price = ...2, retail_price_unit = ...3, yeild = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
+  rename(veg = ...1, retail_price = ...2, retail_price_unit = ...3, yield = ...4, cup_eq_size = ...5, cup_eq_unit = ...6,cup_eq_price = ...7)
 
 veg_2020_clean <- veg_2020 %>% # remove rows without data (these were just the citation of where the data came from)
   filter(!substr(veg, 1, 1) == "1") %>% 
@@ -104,11 +105,49 @@ veg_2020_clean <- veg_2020_clean |>
   filter(!is.na(retail_price))
 ```
 
-
 # How does the price of fruits and vegetables vary based on form? (Kyla)
 
 ```{r}
+# remove the numbers at the end of the forms
+fruit_2020_clean$form <- removeNumbers(fruit_2020_clean$form)
+veg_2020_clean$form <- removeNumbers(veg_2020_clean$form)
 
+# remove additional specifiers from form column that are not important
+fruit_2020_clean$form <- gsub("\\s*\\([^\\)]+\\)", "", fruit_2020_clean$form)
+fruit_2020_clean$form <- sub(",.*", "", fruit_2020_clean$form)
+veg_2020_clean$form <- sub(" .*$", "", veg_2020_clean$form)
+veg_2020_clean$form <- gsub(",", "", veg_2020_clean$form)
+
+# change the tomato forms from "Grape", "Roma", and "Large to all be "Fresh"
+# and filter to only look at price differences between fresh, frozen, canned, and dried
+veg_2020_clean <- veg_2020_clean |> 
+  mutate(form = case_when(form == "Canned" ~ "Canned",
+                   form == "Grape" ~ "Fresh", 
+                   form == "Roma" ~ "Fresh", 
+                   form == "Large" ~ "Fresh",
+                   TRUE ~ form)) |> 
+  filter(form == "Fresh" | form == "Frozen" | form == "Canned" | form == "Dried")
+
+# remove the specific rows for raisins and applesauce because they don't fit cleanly into a category
+# and change "Ready to drink" to "Juice"
+fruit_2020_clean <- fruit_2020_clean |> 
+  filter(form != "Raisins" & form != "Applesauce") |> 
+  mutate(form = case_when(form == "Ready to drink" ~ "Juice",
+                          TRUE ~ form))
+
+# make sure retail_price is a numeric variable
+fruit_2020_clean <- fruit_2020_clean |> 
+  mutate(retail_price = as.numeric(retail_price))
+veg_2020_clean <- veg_2020_clean |> 
+  mutate(retail_price = as.numeric(retail_price))
+
+# examine retail price by form
+fruit_2020_clean |> 
+  group_by(form) |> 
+  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
+veg_2020_clean |> 
+  group_by(form) |> 
+  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
 ```
 
 # Do fruit and vegetable prices vary by family (berries, stone fruit etc)? (Erika)
