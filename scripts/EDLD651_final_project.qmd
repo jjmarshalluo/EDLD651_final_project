@@ -142,13 +142,38 @@ veg_2020_clean <- veg_2020_clean |>
   mutate(retail_price = as.numeric(retail_price))
 
 # examine retail price by form
-fruit_2020_clean |> 
+fruit_summary <- fruit_2020_clean |> 
   group_by(form) |> 
   summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
-veg_2020_clean |> 
+veg_summary <- veg_2020_clean |> 
   group_by(form) |> 
   summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
 ```
+
+```{r}
+fruit_summary |> 
+  ggplot(aes(x = form, y = mean_retail_price, fill = form)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Fruit Retail Prices by Form",
+       x = "Form",
+       y = "Average Retail Price") +
+  scale_fill_manual(values = c("#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702", "#bb3e03")) +
+  theme(theme_minimal(),
+        legend.position = "NULL",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+veg_summary |> 
+  ggplot(aes(x = form, y = mean_retail_price, fill = form)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Average Vegetable Retail Prices by Form",
+       x = "Form",
+       y = "Average Retail Price") +
+  scale_fill_manual(values = c("#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702", "#bb3e03")) +
+  theme(theme_minimal(),
+        legend.position = "NULL",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 
 # Do fruit and vegetable prices vary by family (berries, stone fruit etc)? (Erika)
 
