@@ -5,7 +5,11 @@ format: pdf
 editor: visual
 ---
 
+<<<<<<< Updated upstream
 # Load Packages
+
+=======
+>>>>>>> Stashed changes
 
 ```{r}
 library(here)
@@ -13,12 +17,16 @@ library(janitor)
 library(rio)
 library(tidyverse)
 library(tm)
+library(dplyr)
+#install.packages("tm") <- i didn't have this package
 ```
 
 # Import Data
 
+<<<<<<< Updated upstream
 ```{r}
 # Fruit data
+
 fruit_files <- list.files(pattern = ".xlsx", path = "../data/fruit-2020", full.names = TRUE)
 
 fruit_2020 <- do.call(rbind, lapply
@@ -178,11 +186,141 @@ veg_summary |>
 # Do fruit and vegetable prices vary by family (berries, stone fruit etc)? (Erika)
 
 ```{r}
+#making a new column for the fruit groups -- I can add where I found this info in our introduction :P
 
+fruit_family_data <- fruit_2020_clean %>%
+   mutate(
+    family = case_when(
+      fruit_name %in% c("Peaches", "Plums", "Apricots", "Cherries",
+                        "Nectarines", "Mangoes", "Dates") ~ "stone fruit",
+      
+      fruit_name %in% c("Blackberries", "Blueberries", "Raspberries",
+                        "Strawberries", "Pomegranate", "Bananas", "Kiwi",
+                        "Pineapple", "Cranberries", "Grapes", "Papaya") ~ "berries",
+      
+      fruit_name %in% c("Apples", "Pears") ~ "pome",
+      
+      fruit_name %in% c("Clementines", "Oranges", "Grapefruit") ~ "citrus",
+      
+      fruit_name %in% c("Cantaloupe", "Honeydew melon", "Watermelon") ~ "melon",
+      
+      fruit_name %in% c("Mixed berries", "Fruit cocktail") ~ "mixed fruits",
+      
+      fruit_name %in% c("Figs") ~ "syconium",
+      
+      TRUE ~ "other"
+    )
+  )
+
+#looking at summary stats by family ... using cup eq. price so we have a relatively similar amount by price
+str(fruit_family_data$cup_eq_price)
+fruit_family_data <- fruit_family_data %>% 
+  mutate(cup_eq_price = as.numeric(cup_eq_price))
+
+fruit_family_data %>%
+  group_by(family) %>%
+  summarize(
+    mean_price = mean(cup_eq_price, na.rm = TRUE),
+    median_price = median(cup_eq_price, na.rm = TRUE),
+    sd_price = sd(cup_eq_price, na.rm = TRUE),
+    n = n()
+  )
+
+# running a one way anova to see if price (continuous) varies by family (categorical). I found that it does not vary signifiantly (p = .158)
+anova_result <- aov(cup_eq_price ~ family, data = fruit_family_data)
+summary(anova_result)
+
+#plot
+plot_table1 <- fruit_family_data %>%
+  group_by(family) %>%
+  summarize(
+    mean_price = mean(cup_eq_price, na.rm = TRUE),
+    sd_price = sd(cup_eq_price, na.rm = TRUE),
+    n = n(),
+    se_price = sd_price / sqrt(n)
+  )
+
+ggplot(plot_table1, aes(x = reorder(family, mean_price), y = mean_price)) +
+  geom_col(fill = "deeppink4") +
+  geom_errorbar(aes(ymin = mean_price - se_price, ymax = mean_price + se_price), width = 0.3) +
+  labs(x = "Fruit Family", y = "Mean Price per Unit", title = "Mean Fruit Prices by Family") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+```{r}
+# doing the same exact thing but for vegetables 
+veg_family_data <- veg_2020_clean %>%
+   mutate(
+    family = case_when(
+      veg_name %in% c("Broccoli", "Brussels sprouts", "Cabbage", "Cauliflower",
+                        "Collard greens", "Kale", "Turnip greens", "Radish", "Mustard greens") ~ "cabbage family",
+      
+      veg_name %in% c("Carrots", "Celery") ~ "carrot family",
+      
+      veg_name %in% c("Onions", "Asparagus") ~ "liliceae family",
+      
+      veg_name %in% c("Acorn squash", "Cucumbers", "Butternut squash", "Pumpkin", "Zucchini") ~ "gourd family",
+      
+      veg_name %in% c("Black beans", "Blackeye peas", "Great northern beans", "Green beans", "Green peas", "Kidney beans", "Lima beans", "Navy beans", "Pinto beans", "Lentils") ~ "legume family",
+      
+      veg_name %in% c("Tomatoes", "Sweet potatoes", "Red peppers", "Potatoes", "Green peppers") ~ "nightshade family",
+      
+      veg_name %in% c("Okra") ~ "hibiscus family",
+      
+      veg_name %in% c("Sweet corn") ~ "grass family",
+      
+      veg_name %in% c("Artichoke", "Iceberg lettuce", "Romaine lettuce") ~ "aster family",
+      
+      veg_name %in% c("Spinach", "Beets") ~ "goosefoot family",
+      
+      veg_name %in% c("Avocados", "Olives") ~ "botanically considered a fruit",
+      
+      veg_name %in% c("Mushrooms") ~ "fungus",
+      
+      veg_name %in% c("Mixed vegetables") ~ "mixed",
+      
+      TRUE ~ "other"
+    )
+  )
+
+str(veg_family_data$cup_eq_price)
+veg_family_data <- veg_family_data %>% 
+  mutate(cup_eq_price = as.numeric(cup_eq_price))
+
+anova_result2 <- aov(cup_eq_price ~ family, data = veg_family_data)
+summary(anova_result2) # this one DID have a significant difference (p < 0.001) so i did post-hoc to see what's going on. 
+
+pairwise.t.test(veg_family_data$cup_eq_price, veg_family_data$family,
+                p.adjust.method = "bonferroni")
+
+#confusing to read but the significant groups are: liliceae is signnificantly different from aster, liliceae different from botanical fruits, liliceae different from gourd, liliceae different from carrot, liliceae different from legume, liliceae different from mixed, liliceae different from nightshade
+#difference mostly because of liliceae (onions + asparagus) being higher in price than others 
+
+# plot 
+summary_table <- veg_family_data %>%
+  group_by(family) %>%
+  summarize(
+    mean_price = mean(cup_eq_price, na.rm = TRUE),
+    sd_price = sd(cup_eq_price, na.rm = TRUE),
+    n = n(),
+    se_price = sd_price / sqrt(n)
+  )
+
+ggplot(summary_table, aes(x = reorder(family, mean_price), y = mean_price)) +
+  geom_col(fill = "olivedrab4") +
+  geom_errorbar(aes(ymin = mean_price - se_price, ymax = mean_price + se_price), width = 0.3) +
+  labs(x = "Vegetable Family", y = "Mean Price per Unit", title = "Mean Vegetable Prices by Family") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 # What is the relationship between retail price and yield by form? (Cheyna)
 
 ```{r}
 
+=======
+veggie_data <- import(here("data", "Vegetable-Prices-2022.csv")) %>%  
+  clean_names()
+>>>>>>> Stashed changes
 ```
