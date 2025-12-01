@@ -346,23 +346,24 @@ ggplot(summary_table, aes(x = reorder(family, mean_price), y = mean_price)) +
 
 # What is the different between retail price for fruits and vegatbles by form? (Cheyna)
 
+# RQ 3 Data Cleaning
 ```{r}
 # examine difference between retail price for fruits and veggies grouped by form
 fruit_2020_clean <- fruit_2020_clean %>% 
   rename(name = fruit_name) %>% #rename col to join fruit df with veg df
   filter(form == "Fresh"| form == "Frozen" | form == "Canned" |form == "Dried") # select forms common across produce 
-  fruit_2020_clean$fruit_veg <- "fruit" 
+  fruit_2020_clean$fruit_veg <- "Fruit" 
 
 veg_2020_clean <- veg_2020_clean %>% 
   rename(name = veg_name)
-  veg_2020_clean$fruit_veg <- "veg" 
+  veg_2020_clean$fruit_veg <- "Vegetable" 
 
 # make fruit and veg df
 fruit_veg_df <- bind_rows(fruit_2020_clean, veg_2020_clean)
+```
 
-# test difference in price for fruits and veg 
-t.test(fruit_2020_clean$retail_price,veg_2020_clean$retail_price) 
-
+# RQ 3 Plots
+```{r}
 # plot fruit and veg diff. 
 crazy_fruit_veg_plot <- fruit_veg_df %>% 
   ggplot(aes(x = retail_price, y = form, fill = name)) +
@@ -378,7 +379,22 @@ normal_fruit_veg_plot <- fruit_veg_df %>%
   geom_bar(stat = 'summary', position = 'dodge', color = "black") +
   facet_wrap(~fruit_veg)+
   theme_minimal()+
-  theme(legend.position = "none")
+  theme(legend.position = "none")+
+  labs(
+    title = "Price Differences for Fruit and Veggies by Form",
+    x = "Retail Price",
+    y = "Form of Product"
+  )
 
 normal_fruit_veg_plot
+```
+
+# RQ3 analysis:  What is the different between retail price for fruits and vegatbles by form? 
+```{r}
+price_form_anova <- aov(retail_price ~ form + fruit_veg, data = fruit_veg_df)
+
+summary(price_form_anova)
+
+pairwise.t.test(fruit_veg_df$retail_price, fruit_veg_df$form,
+                p.adjust.method = "bonferroni")
 ```
