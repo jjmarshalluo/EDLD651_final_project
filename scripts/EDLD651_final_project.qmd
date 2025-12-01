@@ -133,7 +133,8 @@ veg_2020_clean <- veg_2020_clean |>
                    form == "Grape" ~ "Fresh", 
                    form == "Roma" ~ "Fresh", 
                    form == "Large" ~ "Fresh",
-                   TRUE ~ form)) |> 
+                   TRUE ~ form),
+         form = as_factor(form)) |> 
   filter(form == "Fresh" | form == "Frozen" | form == "Canned" | form == "Dried")
 
 # remove the specific rows for raisins and applesauce because they don't fit cleanly into a category
@@ -141,7 +142,8 @@ veg_2020_clean <- veg_2020_clean |>
 fruit_2020_clean <- fruit_2020_clean |> 
   filter(form != "Raisins" & form != "Applesauce") |> 
   mutate(form = case_when(form == "Ready to drink" ~ "Juice",
-                          TRUE ~ form))
+                          TRUE ~ form),
+         form = as_factor(form))
 
 # make sure retail_price is a numeric variable
 fruit_2020_clean <- fruit_2020_clean |> 
@@ -151,35 +153,62 @@ veg_2020_clean <- veg_2020_clean |>
 
 # examine retail price by form
 fruit_summary <- fruit_2020_clean |> 
+  mutate(form = as_factor(form)) |> 
   group_by(form) |> 
-  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
+  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE),
+            sd_price = sd(retail_price, na.rm = TRUE),
+            n = n(),
+            se_price = sd_price / sqrt(n))
 veg_summary <- veg_2020_clean |> 
+  mutate(form = as_factor(form)) |> 
   group_by(form) |> 
-  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE))
+  summarize(mean_retail_price = mean(retail_price, na.rm = TRUE),
+            sd_price = sd(retail_price, na.rm = TRUE),
+            n = n(),
+            se_price = sd_price / sqrt(n))
 ```
 
 ```{r}
-fruit_summary |> 
+# ANOVAs to look at how retail price varies by fruit and veggie form
+fruit_form_anova_result <- aov(retail_price ~ form, data = fruit_2020_clean)
+summary(fruit_form_anova_result)
+pairwise.t.test(fruit_2020_clean$retail_price, fruit_2020_clean$form,
+                p.adjust.method = "bonferroni")
+
+veggie_form_anova_result <- aov(retail_price ~ form, data = veg_2020_clean)
+summary(veggie_form_anova_result)
+```
+
+```{r}
+# plotting average retail price by fruit form
+fruit_form_plot <- fruit_summary |> 
   ggplot(aes(x = form, y = mean_retail_price, fill = form)) +
   geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = mean_retail_price - se_price, ymax = mean_retail_price + se_price), width = 0.3) +
   labs(title = "Average Fruit Retail Prices by Form",
        x = "Form",
        y = "Average Retail Price") +
   scale_fill_manual(values = c("#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702", "#bb3e03")) +
   theme(theme_minimal(),
         legend.position = "NULL",
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.background = element_blank(),  
+        plot.background = element_blank())
 
-veg_summary |> 
+# plotting average retail price by veggie form
+veg_form_plot <- veg_summary |> 
   ggplot(aes(x = form, y = mean_retail_price, fill = form)) +
   geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = mean_retail_price - se_price, ymax = mean_retail_price + se_price), width = 0.3) +
   labs(title = "Average Vegetable Retail Prices by Form",
        x = "Form",
        y = "Average Retail Price") +
   scale_fill_manual(values = c("#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702", "#bb3e03")) +
   theme(theme_minimal(),
         legend.position = "NULL",
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.background = element_blank(),  
+        plot.background = element_blank())
 ```
 
 
