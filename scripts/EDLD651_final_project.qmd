@@ -66,6 +66,7 @@ veg_2020_clean <- veg_2020 %>% # remove rows without data (these were just the c
 ```
 
 # Tidying the data
+Comment: Absolutely beautiful job with the data cleaning!
 
 ```{r}
 # Fruit
@@ -119,6 +120,7 @@ veg_2020_clean <- veg_2020_clean |>
 # remove the numbers at the end of the forms
 fruit_2020_clean$form <- removeNumbers(fruit_2020_clean$form)
 veg_2020_clean$form <- removeNumbers(veg_2020_clean$form)
+#Comment: I love the removeNumbers function! I didn't know that existed!
 
 # remove additional specifiers from form column that are not important
 fruit_2020_clean$form <- gsub("\\s*\\([^\\)]+\\)", "", fruit_2020_clean$form)
@@ -194,6 +196,7 @@ fruit_form_plot <- fruit_summary |>
         axis.text.x = element_text(angle = 45, hjust = 1),
         panel.background = element_blank(),  
         plot.background = element_blank())
+#Beautiful use of colors in your visualizations! They're very cohesive and appealing
 
 # plotting average retail price by veggie form
 veg_form_plot <- veg_summary |> 
